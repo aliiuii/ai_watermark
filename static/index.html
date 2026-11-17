@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Watermark Inspector</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div class="hero-badges">
+        <span class="pill pill-accent">Local Engine</span>
+        <span class="pill pill-neutral">Deterministic &amp; DSP</span>
+        <span class="pill pill-neutral">Batch Processing</span>
+      </div>
+      <h1>Watermark Inspector</h1>
+      <p class="hero-desc">
+        Inspect content credentials, embedded pixel bitstreams, container metadata, and frequency carriers.
+      </p>
+      <div class="layer-legend">
+        <div class="legend-item"><strong>Layer 1</strong> C2PA / JUMBF Content Credentials</div>
+        <div class="legend-item"><strong>Layer 2</strong> DWT-DCT-SVD &amp; Stealth LSB Bitstreams</div>
+        <div class="legend-item"><strong>Layer 3</strong> Chunks, EXIF, XMP &amp; AIGC Tags</div>
+        <div class="legend-item"><strong>Layer 4</strong> 2D FFT &amp; Wavelet DSP Spectrum</div>
+      </div>
+    </header>
+
+    <main>
+      <section class="upload-section" aria-label="Upload and scan controls">
+        <div id="dropZone" class="drop-zone">
+          <input id="fileInput" type="file" multiple accept="image/*" class="sr-only">
+          <div class="drop-zone-inner">
+            <h2>Drop images to inspect</h2>
+            <p>Supports PNG, JPEG, WebP, BMP, TIFF, and AVIF.</p>
+            <div class="action-row">
+              <button type="button" id="pickFilesBtn" class="btn btn-primary">Select Files</button>
+              <button type="button" id="loadSamplesBtn" class="btn btn-secondary">Load Demo Samples</button>
+            </div>
+          </div>
+        </div>
+        <div id="statusBanner" class="status-banner" role="status" aria-live="polite" hidden></div>
+      </section>
+
+      <section class="stats-grid" aria-label="Scan summary">
+        <article class="stat-card">
+          <span class="stat-label">Scanned</span>
+          <strong class="stat-value" id="statTotal">0</strong>
+        </article>
+        <article class="stat-card stat-confirmed">
+          <span class="stat-label">Confirmed</span>
+          <strong class="stat-value" id="statConfirmed">0</strong>
+        </article>
+        <article class="stat-card stat-carrier">
+          <span class="stat-label">Signal Detected</span>
+          <strong class="stat-value" id="statCarrier">0</strong>
+        </article>
+        <article class="stat-card stat-clean">
+          <span class="stat-label">None Found</span>
+          <strong class="stat-value" id="statClean">0</strong>
+        </article>
+      </section>
+
+      <section class="results-section">
+        <div class="results-toolbar">
+          <h2 class="section-title">Results</h2>
+          <div class="export-actions">
+            <button type="button" id="exportJsonBtn" class="btn btn-ghost" disabled>Export JSON</button>
+            <button type="button" id="exportCsvBtn" class="btn btn-ghost" disabled>Export CSV</button>
+            <button type="button" id="clearResultsBtn" class="btn btn-ghost" disabled>Clear</button>
+          </div>
+        </div>
+
+        <div tabindex="0" role="region" aria-labelledby="results-table-caption" class="table-wrapper">
+          <table id="resultsTable">
+            <caption id="results-table-caption">Inspection results</caption>
+            <thead>
+              <tr>
+                <th>File</th>
+                <th>Status</th>
+                <th>Source</th>
+                <th>Layers</th>
+                <th>Summary</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="resultsTbody">
+              <tr class="empty-row">
+                <td colspan="6">No images scanned. Upload files or click <strong>Load Demo Samples</strong>.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="inspectDialog" closedby="any" aria-labelledby="inspectDialogTitle">
+    <div class="dialog-shell">
+      <header class="dialog-header">
+        <div>
+          <h2 id="inspectDialogTitle">Inspection Details</h2>
+          <p id="inspectDialogSubtitle" class="dialog-subtitle"></p>
+        </div>
+        <form method="dialog">
+          <button type="submit" class="btn btn-ghost dialog-close-btn" aria-label="Close dialog">&times; Close</button>
+        </form>
+      </header>
+
+      <div class="dialog-body">
+        <div class="tabs">
+          <div class="tablist scroller" focusgroup="tablist nomemory" aria-label="Inspection layers">
+            <button type="button" role="tab" id="tab-overview" aria-selected="true" focusgroupstart>Overview</button>
+            <button type="button" role="tab" id="tab-c2pa" aria-selected="false">C2PA</button>
+            <button type="button" role="tab" id="tab-pixel" aria-selected="false">Pixel &amp; Bitstream</button>
+            <button type="button" role="tab" id="tab-container" aria-selected="false">Metadata</button>
+            <button type="button" role="tab" id="tab-dsp" aria-selected="false">Spectrum</button>
+          </div>
+
+          <div class="tabpanels-stack">
+            <div role="tabpanel" id="panel-overview" aria-labelledby="tab-overview" tabindex="0">
+              <div class="panel-content" id="panelOverviewContent"></div>
+            </div>
+            <div role="tabpanel" id="panel-c2pa" aria-labelledby="tab-c2pa" hidden="until-found">
+              <div class="panel-content" id="panelC2paContent"></div>
+            </div>
+            <div role="tabpanel" id="panel-pixel" aria-labelledby="tab-pixel" hidden="until-found">
+              <div class="panel-content" id="panelPixelContent"></div>
+            </div>
+            <div role="tabpanel" id="panel-container" aria-labelledby="tab-container" hidden="until-found">
+              <div class="panel-content" id="panelContainerContent"></div>
+            </div>
+            <div role="tabpanel" id="panel-dsp" aria-labelledby="tab-dsp" hidden="until-found">
+              <div class="panel-content" id="panelDspContent"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>
